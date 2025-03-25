@@ -1,14 +1,15 @@
 from fastapi import (
     APIRouter,
     Depends,
+    HTTPException,
     Query,
     status,
 )
 from sqlalchemy.orm import Session
 
-from database import get_db
-from models import Article, ArticleKeyword, Keyword
-from schemas import KeywordSchema, ListArticlesResponse, ListKeywordsResponse
+from app.database import get_db
+from app.models import Article, Keyword
+from app.schemas import KeywordSchema, ListArticlesResponse, ListKeywordsResponse
 
 router = APIRouter(prefix="/keywords")
 
@@ -16,8 +17,8 @@ router = APIRouter(prefix="/keywords")
 @router.get("/", response_model=ListKeywordsResponse)
 async def get_keywords(
     db: Session = Depends(get_db),
-    limit: int = Query(default=1),
-    offset: int = Query(default=0),
+    limit: int = Query(default=1, ge=1),
+    offset: int = Query(default=0, ge=0),
     sort_order: bool = Query(default=True),
     sort_by_id: bool = Query(default=False),
 ):
@@ -46,9 +47,7 @@ async def get_simular_keywords(
     return simular_keywords
 
 
-@router.post(
-    "/", status_code=status.HTTP_201_CREATED, response_model=KeywordSchema
-)
+@router.post("/", status_code=status.HTTP_201_CREATED, response_model=KeywordSchema)
 async def create_article(keyword: KeywordSchema, db: Session = Depends(get_db)):
     new_keyword = Keyword(**keyword.model_dump())
     db.add(new_keyword)
@@ -57,19 +56,32 @@ async def create_article(keyword: KeywordSchema, db: Session = Depends(get_db)):
     return new_keyword
 
 
-@router.get("/{id}/articles", response_model=ListArticlesResponse)
+@router.patch("/{id}")
+async def update_article(
+    id: int, article: KeywordSchema, db: Session = Depends(get_db)
+):
+    query = db.query(Article).filter(Article.id == id)
+    if query.first() is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No keyword with this id: {id} is not found",
+        )
+    update_article = article.model_dump(exclude_unset=True)
+
+    query.filter(Article.id == id).update(update_article, synchronize_session=False)
+
+    db.commit()
+    db.refresh(update_article)
+    
+    return article
+
+
+@router.get("/{id}/articles")  # , response_model=ListArticlesResponse)
 async def get_articles_by_keyword(
     id: int,
     db: Session = Depends(get_db),
-    limit: int = Query(default=1),
-    offset: int = Query(default=0),
+    limit: int = Query(default=1, ge=1),
+    offset: int = Query(default=0, ge=0),
 ):
-    articles = (
-        db.query(Article)
-        .join(ArticleKeyword, ArticleKeyword.article == Article.id)
-        .filter(ArticleKeyword.keyword == id)
-        .offset(offset)
-        .limit(limit)
-        .all()
-    )
-    return articles
+    record: Keyword = db.query(Keyword).get(id)
+    return list(record.articles)[offset : limit + offset]

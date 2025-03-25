@@ -1,10 +1,10 @@
-from fastapi import FastAPI
 import uvicorn
+from fastapi import FastAPI
 
-import constants
-from routers.articles import router as articles_router
-from routers.keywords import router as keywords_router
-from routers.article_keywords import router as article_keywords_router
+from app import constants
+from app.routers.article_keywords import router as article_keywords_router
+from app.routers.articles import router as articles_router
+from app.routers.keywords import router as keywords_router
 
 if __name__ == "__main__":
     app = FastAPI()

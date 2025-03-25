@@ -1,14 +1,14 @@
 from datetime import datetime
-from pydantic import BaseModel
-
 from typing import List, Optional
+
+from pydantic import BaseModel
 
 
 class ArticleSchema(BaseModel):
     id: Optional[int] = None
     title: str
     text: str
-    publication_time: datetime
+    publication_time: Optional[datetime] = None
 
     class Config:
         orm_mode = True
@@ -24,15 +24,11 @@ class KeywordSchema(BaseModel):
         orm_mode = True
         allow_population_by_field_name = True
         arbitrary_types_allowed = True
-
-
-# class KeywordSchema(NewKeywordSchema):
-#     id: int
-
+        
 
 class ArticleKeywordsSchema(BaseModel):
     article_id: int
-    keyword_id: int
+    keywords: List[int]
 
     class Config:
         orm_mode = True

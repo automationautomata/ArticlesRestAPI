@@ -1,11 +1,13 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-import constants
-from models import Base
+from app import constants
+from app.models import Base
 
 engine = create_engine(constants.DATABASE_URL, echo=True)
+
 Base.metadata.create_all(engine, tables=Base.metadata.tables.values())
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 

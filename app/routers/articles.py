@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from database import get_db
 from fastapi import (
     APIRouter,
     Depends,
@@ -8,11 +9,9 @@ from fastapi import (
     Response,
     status,
 )
+from app.models import Article, ArticleKeyword, Keyword
+from app.schemas import ArticleSchema, ListKeywordsResponse
 from sqlalchemy.orm import Session
-
-from database import get_db
-from models import Article
-from schemas import ArticleSchema
 
 router = APIRouter(prefix="/articles")
 
@@ -79,6 +78,23 @@ def delete_post(id: str, db: Session = Depends(get_db)):
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
+@router.get("/{id}/keywords")#, response_model=ListKeywordsResponse)
+async def get_article_keywords(
+    id: int,
+    db: Session = Depends(get_db),
+    limit: int = Query(default=1),
+    offset: int = Query(default=0),
+):
+    article = db.query(Article).get(id)
+    keywords = list(article.keywords)
+
+    if offset >= len(keywords):
+        return []
+    real_limit = max(limit+offset, len(keywords)-1)
+
+    return keywords[offset:real_limit]
+
+
 @router.get("/publications")
 async def get_articles_publications(
     start_time: datetime = Query(default=datetime.now()),
@@ -97,5 +113,3 @@ async def get_articles_publications(
         .offset(offset)
     )
     return query.all()
-
-    # return Response(status_code=status.HTTP_200_OK)

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -21,7 +21,7 @@ class Article(Base):
 class Keyword(Base):
     __tablename__ = "keywords"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    word: Mapped[str] = mapped_column(String(255), nullable=False)
+    word: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
 
 
 class ArticleKeyword(Base):
@@ -30,8 +30,11 @@ class ArticleKeyword(Base):
     article_id: Mapped[int] = mapped_column(Integer, ForeignKey(Article.id))
     keyword_id: Mapped[int] = mapped_column(Integer, ForeignKey(Keyword.id))
     article: Mapped[set["Article"]] = relationship(
-        Article, collection_class=set, backref="articles"
+        Keyword, collection_class=set, backref="articles"
     )
     keyword: Mapped[set["Keyword"]] = relationship(
-        Keyword, collection_class=set, backref="keywords"
+        Article, collection_class=set, backref="keywords"
+    )
+    __table_args__ = (
+        UniqueConstraint("article_id", "keyword_id", name="_article_keyword_uc"),
     )

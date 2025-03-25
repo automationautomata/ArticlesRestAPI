@@ -5,9 +5,9 @@ from fastapi import (
 )
 from sqlalchemy.orm import Session
 
-from database import get_db
-from models import ArticleKeyword
-from schemas import ArticleKeywordsSchema
+from app.database import get_db
+from app.models import ArticleKeyword
+from app.schemas import ArticleKeywordsSchema
 
 router = APIRouter(prefix="/article_keywords")
 
@@ -18,7 +18,7 @@ async def add_keywords_to_article(
 ):
     data = article_keywords.model_dump()
     article_id = data["article_id"]
-    
+
     new_records = []
     for id in data["keywords"]:
         new_records.append(ArticleKeyword(article_id=article_id, keyword_id=id))
@@ -27,4 +27,5 @@ async def add_keywords_to_article(
     db.commit()
     for record in new_records:
         db.refresh(record)
+        
     return new_records
